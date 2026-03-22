@@ -84,6 +84,7 @@ components:
         verification_token: { type: string }
         spf_status: { type: string }
         dkim_status: { type: string }
+        dkim_identifier: { type: string, description: "Custom DKIM selector prefix" }
         mx_status: { type: string }
         return_path_status: { type: string }
         created_at: { type: string, format: date-time }

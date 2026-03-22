@@ -23,7 +23,7 @@ module Api
       # POST /api/v1/organizations/:organization_id/domains
       def create
         scope = @server ? @server.domains : @organization.domains
-        @domain = scope.build(params.require(:domain).permit(:name, :verification_method))
+        @domain = scope.build(params.require(:domain).permit(:name, :verification_method, :dkim_identifier))
 
         if current_user.admin?
           @domain.verification_method = "DNS"
@@ -118,6 +118,7 @@ module Api
           verification_token: domain.verification_token,
           spf_status: domain.spf_status,
           dkim_status: domain.dkim_status,
+          dkim_identifier: domain.dkim_identifier,
           mx_status: domain.mx_status,
           return_path_status: domain.return_path_status,
           created_at: domain.created_at

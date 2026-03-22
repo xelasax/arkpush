@@ -115,9 +115,7 @@ class Domain < ApplicationRecord
   end
 
   def dkim_identifier
-    return nil unless dkim_identifier_string
-
-    Postal::Config.dns.dkim_identifier + "-#{dkim_identifier_string}"
+    read_attribute(:dkim_identifier).presence || (Postal::Config.dns.dkim_identifier + "-#{dkim_identifier_string}")
   end
 
   def dkim_record_name
