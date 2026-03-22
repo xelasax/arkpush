@@ -15,15 +15,10 @@ module API
         @dummy_cookies ||= {}
       end
 
-      # Override authie methods to ensure no cookie-based logic is executed
-      def authie_session_enabled?
+      # Disable Authie callbacks for the API as it is stateless
+      def auth_session_enabled?
         false
       end
-      def set_browser_id; end
-      def auth_session; nil; end
-      def validate_auth_session; end
-      def touch_auth_session; end
-      def store_user_last_used_at; end
 
       before_action :authenticate_with_api_key
 
@@ -53,7 +48,6 @@ module API
       end
 
       def render_error(code, message: nil, status: 422, data: {})
-        raise 'Hit render_error!'
         render json: {
           status: "error",
           error: {
@@ -65,7 +59,6 @@ module API
       end
 
       def render_success(data = {}, status: 200)
-        raise 'Hit render_success!'
         render json: {
           status: "success",
           data: data
