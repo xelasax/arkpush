@@ -50,7 +50,7 @@ RSpec.describe 'API::V1::Organizations', type: :request do
         }
       }
 
-      let(:organization) { { organization: { name: 'Test Org', permalink: 'test-org' } } }
+      let(:organization) { { organization: { name: 'New Org', permalink: 'new-org' } } }
       response '201', 'organization created' do
         run_test!
       end
@@ -86,7 +86,7 @@ RSpec.describe 'API::V1::Organizations', type: :request do
         }
       }
 
-      let(:server) { { server: { name: 'New Test Server', permalink: 'new-test-server', mode: 'Live' } } }
+      let(:server) { { server: { name: 'New Server', permalink: 'new-server', mode: 'Live' } } }
       response '201', 'server created' do
         run_test!
       end
