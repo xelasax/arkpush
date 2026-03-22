@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class InitialSchema < ActiveRecord::Migration[4.2]
+class InitialSchema < ActiveRecord::Migration
 
   def up
     create_table "additional_route_endpoints", force: :cascade, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4" do |t|
