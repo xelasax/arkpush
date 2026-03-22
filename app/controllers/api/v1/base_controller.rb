@@ -16,7 +16,7 @@ module API
       end
 
       # Override authie methods to ensure no cookie-based logic is executed
-      def set_browser_id; end
+      def set_browser_id; yield; end
       def auth_session; nil; end
       def validate_auth_session; end
       def touch_auth_session; end
