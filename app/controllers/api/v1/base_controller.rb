@@ -71,7 +71,18 @@ module API
         return if current_user&.admin?
 
         render_error "AdminRequired", message: "Administrator permissions are required to access this resource.", status: 403
-        throw(:abort)
+      end
+
+      # Authie overrides for stateless API to prevent cookie access
+      def touch_auth_session; end
+      def set_browser_id; end
+      def auth_session; nil; end
+      def store_user_last_used_at; end
+      def validate_auth_session; end
+
+      # Provide a dummy cookies method for any gems (like authie) that might still try to access it
+      def cookies
+        @dummy_cookies ||= ActionDispatch::Cookies::CookieJar.build(request, {})
       end
 
     end
