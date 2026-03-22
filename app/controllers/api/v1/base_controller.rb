@@ -7,10 +7,11 @@ module API
       rescue_from ActiveRecord::RecordNotFound, with: :render_not_found
       rescue_from ActionController::ParameterMissing, with: :render_parameter_missing
 
-      # API controllers are stateless and don't use cookies, so we skip authie's browser tracking
+      # API controllers are stateless and don't use cookies, so we skip authie's browser tracking and session validation
       skip_before_action :set_browser_id, raise: false
       skip_before_action :auth_session, raise: false
       skip_before_action :store_user_last_used_at, raise: false
+      skip_before_action :validate_auth_session, raise: false
 
       before_action :authenticate_with_api_key
 
