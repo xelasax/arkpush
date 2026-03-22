@@ -27,10 +27,8 @@ module API
       private
 
       def authenticate_with_api_key
-        fail "DEBUG: BaseController#authenticate_with_api_key hit"
         header = request.headers["Authorization"]
         token = header&.split(" ")&.last || params[:api_key]
-        warn "DEBUG: authenticate_with_api_key extracted token: #{token.to_s.chars.first(8).join}..."
 
         if token.blank?
           render_error "MissingAPIKey", message: "An API key is required to access this resource.", status: 401
@@ -52,7 +50,6 @@ module API
       end
 
       def render_error(code, message: nil, status: 422, data: {})
-        warn "DEBUG: render_error called with #{code}, status: #{status}"
         render json: {
           status: "error",
           error: {
@@ -64,7 +61,6 @@ module API
       end
 
       def render_success(data = {}, status: 200)
-        warn "DEBUG: render_success called, status: #{status}"
         render json: {
           status: "success",
           data: data
@@ -92,6 +88,7 @@ module API
         return if current_user&.admin?
 
         render_error "AdminRequired", message: "Administrator permissions are required to access this resource.", status: 403
+        return
       end
 
     end

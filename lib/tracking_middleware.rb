@@ -9,7 +9,6 @@ class TrackingMiddleware
   end
 
   def call(env)
-    warn "DEBUG: TrackingMiddleware: #{env['REQUEST_METHOD']} #{env['PATH_INFO']} (host: #{env['HTTP_HOST']})"
     unless env["HTTP_X_POSTAL_TRACK_HOST"].to_i == 1
       return @app.call(env)
     end
@@ -21,12 +20,12 @@ class TrackingMiddleware
       server_token = ::Regexp.last_match(1)
       message_token = ::Regexp.last_match(2)
       dispatch_image_request(request, server_token, message_token)
-    when /\A\/([a-z0-9-]+)\/([a-z0-9-]+)/i
+    when /\A\/(?!api)([a-z0-9-]+)\/([a-z0-9-]+)/i
       server_token = ::Regexp.last_match(1)
       link_token = ::Regexp.last_match(2)
       dispatch_redirect_request(request, server_token, link_token)
     else
-      [200, {}, ["Hello."]]
+      @app.call(env)
     end
   end
 
