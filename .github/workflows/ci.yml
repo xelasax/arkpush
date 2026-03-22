@@ -55,7 +55,7 @@ jobs:
       - run: docker compose pull
         env:
           POSTAL_IMAGE: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:ci-${{ github.sha }}
-      - run: docker compose run postal sh -c 'bundle exec rake db:migrate && bundle exec rspec'
+      - run: docker compose run postal sh -c 'bundle exec rake db:schema:load && bundle exec rake db:migrate && bundle exec rspec'
         env:
           POSTAL_IMAGE: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:ci-${{ github.sha }}
 
