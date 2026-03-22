@@ -8,8 +8,10 @@ module API
 
       # POST /api/v1/sessions
       def create
-        credentials = params[:credentials] || params
-        user = User.authenticate(credentials[:email_address] || credentials[:email], credentials[:password])
+        email = params.dig(:credentials, :email_address) || params.dig(:credentials, :email) || params[:email_address] || params[:email]
+        password = params.dig(:credentials, :password) || params[:password]
+        
+        user = User.authenticate(email, password)
         
         # In a headless system, we provide a way to get an API key. 
         # We'll return the first one or create a default one.

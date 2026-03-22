@@ -5,14 +5,21 @@ module API
     class BaseController < ActionController::API
 
       rescue_from ActiveRecord::RecordNotFound, with: :render_not_found
+      rescue_from ActiveRecord::RecordInvalid, with: :render_record_invalid
       rescue_from ActionController::ParameterMissing, with: :render_parameter_missing
 
-      # API controllers are stateless and don't use cookies, so we skip authie's browser tracking and session validation
-      skip_before_action :set_browser_id, raise: false
-      skip_before_action :auth_session, raise: false
-      skip_before_action :store_user_last_used_at, raise: false
-      skip_before_action :validate_auth_session, raise: false
-      skip_after_action :touch_auth_session, raise: false
+      # API controllers are stateless and don't use cookies, but we provide a dummy
+      # cookies method to satisfy authie's internal requirements.
+      def cookies
+        @dummy_cookies ||= {}
+      end
+
+      # Override authie methods to ensure no cookie-based logic is executed
+      def set_browser_id; end
+      def auth_session; nil; end
+      def validate_auth_session; end
+      def touch_auth_session; end
+      def store_user_last_used_at; end
 
       before_action :authenticate_with_api_key
 
@@ -67,22 +74,14 @@ module API
         render_error "ParameterMissing", message: exception.message, status: 400
       end
 
+      def render_record_invalid(exception)
+        render_error "RecordInvalid", message: exception.record.errors.full_messages.join(", "), status: 422
+      end
+
       def admin_required
         return if current_user&.admin?
 
         render_error "AdminRequired", message: "Administrator permissions are required to access this resource.", status: 403
-      end
-
-      # Authie overrides for stateless API to prevent cookie access
-      def touch_auth_session; end
-      def set_browser_id; end
-      def auth_session; nil; end
-      def store_user_last_used_at; end
-      def validate_auth_session; end
-
-      # Provide a dummy cookies method for any gems (like authie) that might still try to access it
-      def cookies
-        @dummy_cookies ||= ActionDispatch::Cookies::CookieJar.build(request, {})
       end
 
     end
