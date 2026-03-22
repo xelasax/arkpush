@@ -27,6 +27,7 @@ module API
       private
 
       def authenticate_with_api_key
+        fail "DEBUG: BaseController#authenticate_with_api_key hit"
         header = request.headers["Authorization"]
         token = header&.split(" ")&.last || params[:api_key]
         warn "DEBUG: authenticate_with_api_key extracted token: #{token.to_s.chars.first(8).join}..."
