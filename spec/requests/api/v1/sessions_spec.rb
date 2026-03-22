@@ -43,13 +43,4 @@ RSpec.describe 'Api::V1::Sessions', type: :request do
         run_test!
       end
     end
-  path '/api/v1/organizations' do
-    get 'List organizations' do
-      tags 'Organizations'
-      security [bearerAuth: []]
-      response '200', 'successful' do
-        run_test!
-      end
-    end
-  end
 end

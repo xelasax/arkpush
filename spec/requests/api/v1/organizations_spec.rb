@@ -37,6 +37,8 @@ RSpec.describe 'Api::V1::Organizations', type: :request do
           }
         }
       }
+
+      let(:organization) { { organization: { name: 'Test Org', permalink: 'test-org' } } }
       response '201', 'organization created' do
         run_test!
       end
@@ -45,6 +47,7 @@ RSpec.describe 'Api::V1::Organizations', type: :request do
 
   path '/api/v1/organizations/{id}/servers' do
     parameter name: :id, in: :path, type: :string
+    let(:id) { 'test-org' }
 
     get 'List servers' do
       tags 'Servers'
@@ -70,6 +73,8 @@ RSpec.describe 'Api::V1::Organizations', type: :request do
           }
         }
       }
+
+      let(:server) { { server: { name: 'Test Server', permalink: 'test-server' } } }
       response '201', 'server created' do
         run_test!
       end

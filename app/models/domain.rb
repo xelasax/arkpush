@@ -115,7 +115,7 @@ class Domain < ApplicationRecord
   end
 
   def dkim_identifier
-    read_attribute(:dkim_identifier).presence || (Postal::Config.dns.dkim_identifier + "-#{dkim_identifier_string}")
+    read_attribute(:dkim_identifier).presence || (dkim_identifier_string.present? ? "#{Postal::Config.dns.dkim_identifier}-#{dkim_identifier_string}" : nil)
   end
 
   def dkim_record_name
