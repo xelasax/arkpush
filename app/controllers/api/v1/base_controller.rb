@@ -16,7 +16,10 @@ module API
       end
 
       # Override authie methods to ensure no cookie-based logic is executed
-      def set_browser_id; yield; end
+      def authie_session_enabled?
+        false
+      end
+      def set_browser_id; end
       def auth_session; nil; end
       def validate_auth_session; end
       def touch_auth_session; end
@@ -50,6 +53,7 @@ module API
       end
 
       def render_error(code, message: nil, status: 422, data: {})
+        raise 'Hit render_error!'
         render json: {
           status: "error",
           error: {
@@ -61,6 +65,7 @@ module API
       end
 
       def render_success(data = {}, status: 200)
+        raise 'Hit render_success!'
         render json: {
           status: "success",
           data: data
