@@ -7,6 +7,7 @@ module API
 
       # GET /api/v1/organizations
       def index
+        puts "DEBUG: OrganizationsController#index reached"
         @organizations = current_user.organizations_scope.present.order(:name)
         render_success(@organizations.map { |o| organization_data(o) })
       end
