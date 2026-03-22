@@ -56,6 +56,9 @@ group :development do
   gem "rubocop-rails"
 end
 
+gem "rswag-api"
+gem "rswag-ui"
+
 group :test do
   gem "database_cleaner-active_record"
   gem "factory_bot_rails"
@@ -64,7 +67,5 @@ group :test do
   gem "shoulda-matchers"
   gem "timecop"
   gem "webmock"
-  gem "rswag-api"
-  gem "rswag-ui"
   gem "rswag-specs"
 end

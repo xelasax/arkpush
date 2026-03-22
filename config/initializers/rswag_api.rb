@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
-Rswag::Api.configure do |c|
-  c.openapi_root = Rails.root.to_s + "/public/api-docs"
+if defined?(Rswag::Api)
+  Rswag::Api.configure do |c|
+    c.openapi_root = Rails.root.to_s + "/public/api-docs"
+  end
 end
