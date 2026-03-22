@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class CreateUserApiKeys < ActiveRecord::Migration[7.1]
+class CreateUserAPIKeys < ActiveRecord::Migration[7.1]
   def change
     create_table :user_api_keys do |t|
       t.integer :user_id
