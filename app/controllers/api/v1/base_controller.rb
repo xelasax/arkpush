@@ -7,6 +7,7 @@ module API
       rescue_from ActiveRecord::RecordNotFound, with: :render_not_found
       rescue_from ActiveRecord::RecordInvalid, with: :render_record_invalid
       rescue_from ActionController::ParameterMissing, with: :render_parameter_missing
+      rescue_from StandardError, with: :render_standard_error
 
       # API controllers are stateless and don't use cookies, but we provide a dummy
       # cookies method to satisfy authie's internal requirements.
@@ -76,6 +77,11 @@ module API
 
       def render_record_invalid(exception)
         render_error "RecordInvalid", message: exception.record.errors.full_messages.join(", "), status: 422
+      end
+
+      def render_standard_error(exception)
+        logger.error "API Error: #{exception.class}: #{exception.message}\n#{exception.backtrace.first(10).join("\n")}"
+        render_error "InternalError", message: exception.message, status: 500
       end
 
       def admin_required

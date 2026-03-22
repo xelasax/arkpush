@@ -4,7 +4,7 @@ require 'swagger_helper'
 
 RSpec.describe 'API::V1::Sessions', type: :request do
   let(:user) { create(:user, password: 'password') }
-  let(:credentials) { { email_address: user.email_address, password: 'password' } }
+  let(:login_params) { { email_address: user.email_address, password: 'password' } }
   let(:user_api_key) { create(:user_api_key, user: user) }
   let(:Authorization) { "Bearer #{user_api_key.key}" }
 
@@ -21,6 +21,7 @@ RSpec.describe 'API::V1::Sessions', type: :request do
         required: %w[email_address password]
       }
 
+      let(:credentials) { login_params }
       response '200', 'login successful' do
         schema type: :object,
           properties: {
@@ -37,6 +38,7 @@ RSpec.describe 'API::V1::Sessions', type: :request do
       end
 
       response '401', 'invalid credentials' do
+        let(:credentials) { { email_address: user.email_address, password: 'wrongpassword' } }
         run_test!
       end
     end

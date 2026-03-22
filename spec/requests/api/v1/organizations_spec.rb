@@ -6,11 +6,13 @@ RSpec.describe 'API::V1::Organizations', type: :request do
   let(:user) { create(:user) }
   let(:user_api_key) { create(:user_api_key, user: user) }
   let(:Authorization) { "Bearer #{user_api_key.key}" }
-  let(:organization) { create(:organization, owner: user, permalink: 'test-org') }
+  let(:org_object) { create(:organization, owner: user, permalink: 'test-org') }
+  let(:server_object) { create(:server, organization: org_object, permalink: 'test-server') }
 
   before do
-    organization
-    OrganizationUser.create!(organization: organization, user: user, admin: true, all_servers: true)
+    org_object
+    server_object
+    OrganizationUser.create!(organization: org_object, user: user, admin: true, all_servers: true)
   end
 
   path '/api/v1/organizations' do
