@@ -43,4 +43,5 @@ RSpec.describe 'Api::V1::Sessions', type: :request do
         run_test!
       end
     end
+  end
 end
