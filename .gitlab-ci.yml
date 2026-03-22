@@ -1,0 +1,49 @@
+stages:
+  - build
+
+variables:
+  # Default to GitLab Registry, but you can override these variables in GitLab UI
+  DOCKER_HOST: tcp://docker:2376
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_TLS_VERIFY: 1
+  DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
+
+build-and-push:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  before_script:
+    # Log in to GitLab Container Registry
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - |
+      docker build \
+        --pull \
+        --build-arg VERSION=$CI_COMMIT_SHORT_SHA \
+        --build-arg BRANCH=$CI_COMMIT_REF_NAME \
+        -t $IMAGE_TAG \
+        -t $IMAGE_LATEST \
+        .
+    - docker push $IMAGE_TAG
+    - docker push $IMAGE_LATEST
+  only:
+    - main
+    - master
+
+# Example: To push to GitHub Container Registry (GHCR) instead:
+# 1. Add GHCR_USER and GHCR_TOKEN to your GitLab CI/CD Variables
+# 2. Uncomment/Adapt the lines below:
+#
+# build-ghcr:
+#   stage: build
+#   image: docker:24.0.5
+#   services:
+#     - docker:24.0.5-dind
+#   before_script:
+#     - echo $GHCR_TOKEN | docker login ghcr.io -u $GHCR_USER --password-stdin
+#   script:
+#     - docker build -t ghcr.io/$GHCR_USER/postcontrol:latest .
+#     - docker push ghcr.io/$GHCR_USER/postcontrol:latest

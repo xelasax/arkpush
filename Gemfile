@@ -64,4 +64,7 @@ group :test do
   gem "shoulda-matchers"
   gem "timecop"
   gem "webmock"
+  gem "rswag-api"
+  gem "rswag-ui"
+  gem "rswag-specs"
 end

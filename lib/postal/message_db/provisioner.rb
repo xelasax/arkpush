@@ -36,6 +36,7 @@ module Postal
       #
       def create
         @database.query("CREATE DATABASE `#{@database.database_name}` CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci;")
+        create_manticore_index
         true
       rescue Mysql2::Error => e
         e.message =~ /database exists/ ? false : raise
@@ -46,6 +47,7 @@ module Postal
       #
       def drop
         @database.query("DROP DATABASE `#{@database.database_name}`;")
+        drop_manticore_index
         true
       rescue Mysql2::Error => e
         e.message =~ /doesn't exist/ ? false : raise
@@ -156,6 +158,33 @@ module Postal
       end
 
       private
+
+      def create_manticore_index
+        return unless Postal::Manticore::Adapter.enabled?
+
+        index = Postal::Manticore::Adapter.index_name(@database.server_id)
+        Postal::Manticore::Adapter.query("DROP TABLE IF EXISTS #{index}")
+        sql = <<~SQL
+          CREATE TABLE #{index} (
+            subject text,
+            rcpt_to text,
+            mail_from text,
+            tag text,
+            token string,
+            status string,
+            timestamp timestamp,
+            spam integer
+          ) rt_mem_limit='128M'
+        SQL
+        Postal::Manticore::Adapter.query(sql)
+      end
+
+      def drop_manticore_index
+        return unless Postal::Manticore::Adapter.enabled?
+
+        index = Postal::Manticore::Adapter.index_name(@database.server_id)
+        Postal::Manticore::Adapter.query("DROP TABLE IF EXISTS #{index}")
+      end
 
       #
       # Build a query to load a table

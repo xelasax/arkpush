@@ -147,6 +147,11 @@ module Postal
       #   :count     => Return a count of the results instead of the actual data
       #
       def select(table, options = {})
+        if table.to_s == "messages" && Postal::Manticore::Adapter.enabled? && !options[:count]
+          result = select_from_manticore(options)
+          return result if result
+        end
+
         sql_query = String.new("SELECT")
         if options[:count]
           sql_query << " COUNT(id) AS count"
@@ -320,6 +325,61 @@ module Postal
       end
 
       private
+
+      def select_from_manticore(options)
+        index = Postal::Manticore::Adapter.index_name(@server_id)
+        sql = String.new("SELECT id FROM #{index}")
+
+        where = []
+        if options[:where].present?
+          options[:where].each do |key, value|
+            case key.to_s
+            when "rcpt_to", "mail_from", "subject", "tag"
+              where << "MATCH('@#{key} #{Postal::Manticore::Adapter.escape(value)}')"
+            when "status"
+              where << "`status` = '#{Postal::Manticore::Adapter.escape(value)}'"
+            when "spam"
+              where << "`spam` = #{value ? 1 : 0}"
+            when "timestamp"
+              # Handle hash operators
+              if value.is_a?(Hash)
+                value.each do |op, val|
+                  case op
+                  when :less_than then where << "`timestamp` < #{val.to_i}"
+                  when :greater_than then where << "`timestamp` > #{val.to_i}"
+                  end
+                end
+              else
+                where << "`timestamp` = #{value.to_i}"
+              end
+            end
+          end
+        end
+
+        sql << " WHERE #{where.join(' AND ')}" unless where.empty?
+
+        if options[:order]
+          direction = (options[:direction] || "ASC").upcase
+          sql << " ORDER BY `#{options[:order]}` #{direction}"
+        end
+
+        if options[:limit]
+          sql << " LIMIT #{options[:limit]}"
+        end
+
+        if options[:offset]
+          sql << " OFFSET #{options[:offset]}"
+        end
+
+        manticore_results = Postal::Manticore::Adapter.query(sql)
+        return nil if manticore_results.nil?
+
+        ids = manticore_results.map { |r| r["id"] }
+        return [] if ids.empty?
+
+        # Fetch full records from MySQL using the IDs from Manticore
+        select("messages", where: { id: ids }, order: options[:order], direction: options[:direction])
+      end
 
       def query_on_connection(connection, query)
         start_time = Time.now.to_f

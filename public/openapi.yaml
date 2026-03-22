@@ -1,0 +1,947 @@
+openapi: 3.1.0
+info:
+  title: Postcontrol (Postal) Headless API
+  version: 1.0.0
+  description: |
+    Comprehensive API for managing Arkpush (Postal) mail servers.
+    Provides full control over organizations, servers, domains, users, messages, and webhooks.
+    
+    **Authentication**: Use Bearer token in the `Authorization` header.
+    ```
+    Authorization: Bearer <your_api_key>
+    ```
+
+servers:
+  - url: /api/v1
+    description: Primary API server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        status: { type: string, example: "error" }
+        code: { type: string, example: "RecordInvalid" }
+        message: { type: string, example: "Name cannot be blank." }
+
+    Success:
+      type: object
+      properties:
+        status: { type: string, example: "success" }
+        data: { type: object }
+
+    User:
+      type: object
+      properties:
+        uuid: { type: string }
+        first_name: { type: string }
+        last_name: { type: string }
+        email_address: { type: string }
+        admin: { type: boolean }
+        created_at: { type: string, format: date-time }
+
+    UserAPIKey:
+      type: object
+      properties:
+        name: { type: string }
+        key: { type: string, description: "Only shown on creation" }
+        last_used_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    Organization:
+      type: object
+      properties:
+        name: { type: string }
+        permalink: { type: string }
+        uuid: { type: string }
+        time_zone: { type: string }
+        suspended: { type: boolean }
+        created_at: { type: string, format: date-time }
+
+    Server:
+      type: object
+      properties:
+        name: { type: string }
+        permalink: { type: string }
+        uuid: { type: string }
+        mode: { type: string }
+        suspended: { type: boolean }
+        suspension_reason: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    Domain:
+      type: object
+      properties:
+        name: { type: string }
+        uuid: { type: string }
+        verified: { type: boolean }
+        verification_method: { type: string, enum: [DNS, Email] }
+        verification_token: { type: string }
+        spf_status: { type: string }
+        dkim_status: { type: string }
+        mx_status: { type: string }
+        return_path_status: { type: string }
+        created_at: { type: string, format: date-time }
+
+    Invite:
+      type: object
+      properties:
+        uuid: { type: string }
+        email_address: { type: string }
+        expires_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+
+    MessageSummary:
+      type: object
+      properties:
+        id: { type: integer }
+        token: { type: string }
+        to: { type: string }
+        from: { type: string }
+        subject: { type: string }
+        status: { type: string }
+        timestamp: { type: number }
+
+    MessageDetail:
+      allOf:
+        - $ref: '#/components/schemas/MessageSummary'
+        - type: object
+          properties:
+            headers: { type: object }
+            plain_body: { type: string }
+            html_body: { type: string }
+            attachments:
+              type: array
+              items:
+                type: object
+                properties:
+                  filename: { type: string }
+                  content_type: { type: string }
+                  size: { type: integer }
+
+    Webhook:
+      type: object
+      properties:
+        name: { type: string }
+        uuid: { type: string }
+        url: { type: string }
+        enabled: { type: boolean }
+        all_events: { type: boolean }
+        events:
+          type: array
+          items: { type: string }
+        created_at: { type: string, format: date-time }
+
+    WebhookRequest:
+      type: object
+      properties:
+        uuid: { type: string }
+        url: { type: string }
+        event: { type: string }
+        status: { type: string, enum: [success, error] }
+        error: { type: string, nullable: true }
+        attempts: { type: integer }
+        created_at: { type: string, format: date-time }
+
+    TrackDomain:
+      type: object
+      properties:
+        name: { type: string }
+        uuid: { type: string }
+        ssl_enabled: { type: boolean }
+        dns_status: { type: string }
+        dns_error: { type: string, nullable: true }
+        track_clicks: { type: boolean }
+        track_loads: { type: boolean }
+        created_at: { type: string, format: date-time }
+
+    IPPool:
+      type: object
+      properties:
+        name: { type: string }
+        uuid: { type: string }
+        default: { type: boolean }
+        created_at: { type: string, format: date-time }
+
+    IPPoolRule:
+      type: object
+      properties:
+        uuid: { type: string }
+        ip_pool_id: { type: integer }
+        ip_pool_name: { type: string }
+        from_text: { type: string }
+        to_text: { type: string }
+        created_at: { type: string, format: date-time }
+
+paths:
+  /sessions:
+    post:
+      summary: Login and obtain API key
+      security: []
+      description: Use email and password for a full user login to obtain a primary API key.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email_address, password]
+              properties:
+                email_address: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+                  data:
+                    type: object
+                    properties:
+                      api_key: { type: string }
+                      user: { $ref: '#/components/schemas/User' }
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+    delete:
+      summary: Logout
+      security: [{ bearerAuth: [] }]
+      description: Log out and invalidate the currently used session (if applicable).
+      responses:
+        '200':
+          description: Successful logout
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Success' }
+
+  /sessions/reset:
+    post:
+      summary: Begin password reset
+      security: []
+      description: Send a password reset email to the specified user.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email_address]
+              properties:
+                email_address: { type: string }
+      responses:
+        '200':
+          description: Reset email sent
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Success' }
+
+    put:
+      summary: Finish password reset
+      security: []
+      description: Complete the password reset using a token obtained from the email.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password, password_confirmation]
+              properties:
+                token: { type: string }
+                password: { type: string }
+                password_confirmation: { type: string }
+      responses:
+        '200':
+          description: Password reset successful
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Success' }
+
+  /user:
+    get:
+      summary: Get current user profile
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: User profile data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+                  data: { $ref: '#/components/schemas/User' }
+
+    patch:
+      summary: Update user profile
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user:
+                  type: object
+                  properties:
+                    first_name: { type: string }
+                    last_name: { type: string }
+                    email_address: { type: string }
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Success' }
+
+  /user/join:
+    post:
+      summary: Join an organization (Accept invite)
+      security: []
+      description: Accept an invitation to join an organization using a token.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+                first_name: { type: string }
+                last_name: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: Joined successfully
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Success' }
+
+  /user/api_keys:
+    get:
+      summary: List my API keys
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: List of API keys
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/UserAPIKey' }
+
+    post:
+      summary: Create a new API key
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+      responses:
+        '201':
+          description: API key created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/UserAPIKey' }
+
+  /user/api_keys/{id}:
+    delete:
+      summary: Revoke an API key
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: API key revoked
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Success' }
+
+  /organizations:
+    get:
+      summary: List organizations
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: List of organizations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Organization' }
+
+    post:
+      summary: Create organization (Admin only)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [organization]
+              properties:
+                organization:
+                  type: object
+                  required: [name, permalink]
+                  properties:
+                    name: { type: string }
+                    permalink: { type: string }
+      responses:
+        '201':
+          description: Organization created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Organization' }
+
+  /organizations/{id}:
+    get:
+      summary: Get organization details
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Organization data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Organization' }
+
+    patch:
+      summary: Update organization
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                organization:
+                  type: object
+                  properties:
+                    name: { type: string }
+                    time_zone: { type: string }
+      responses:
+        '200':
+          description: Organization updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Organization' }
+
+    delete:
+      summary: Delete organization (Admin only)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Organization deleted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Success' }
+
+  /organizations/{id}/settings:
+    patch:
+      summary: Update organization settings
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                organization:
+                  type: object
+                  properties:
+                    name: { type: string }
+                    time_zone: { type: string }
+      responses:
+        '200':
+          description: Organization updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Organization' }
+
+  /organizations/{id}/servers:
+    get:
+      summary: List servers in an organization
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: List of servers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Server' }
+
+    post:
+      summary: Create a server
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [server]
+              properties:
+                server:
+                  type: object
+                  required: [name, permalink]
+                  properties:
+                    name: { type: string }
+                    permalink: { type: string }
+                    mode: { type: string, enum: [Live, Sandbox] }
+      responses:
+        '201':
+          description: Server created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Server' }
+
+  /organizations/{org_id}/servers/{id}:
+    get:
+      summary: Get server details
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Server data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Server' }
+
+    patch:
+      summary: Update server
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                server:
+                  type: object
+                  properties:
+                    name: { type: string }
+                    mode: { type: string }
+                    ip_pool_id: { type: integer }
+                    send_limit: { type: integer }
+                    message_retention_days: { type: integer }
+      responses:
+        '200':
+          description: Server updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Server' }
+
+    delete:
+      summary: Delete server
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Server deleted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Success' }
+
+  /organizations/{org_id}/servers/{id}/suspend:
+    post:
+      summary: Suspend a server (Admin only)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Server suspended
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Success' }
+
+  /organizations/{org_id}/servers/{id}/unsuspend:
+    post:
+      summary: Unsuspend a server (Admin only)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Server unsuspended
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Success' }
+
+  /organizations/{org_id}/servers/{id}/messages:
+    get:
+      summary: Query message history
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: to
+          in: query
+          schema: { type: string }
+        - name: from
+          in: query
+          schema: { type: string }
+        - name: tag
+          in: query
+          schema: { type: string }
+        - name: query
+          in: query
+          description: Full-text search (Leverages Manticore if enabled)
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+      responses:
+        '200':
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/MessageSummary' }
+
+  /organizations/{org_id}/servers/{server_id}/messages/{id}:
+    get:
+      summary: Get message details
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: server_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Detailed message data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/MessageDetail' }
+
+  /organizations/{org_id}/servers/{server_id}/messages/{id}/activity:
+    get:
+      summary: Get message activity log
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: server_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: List of delivery attempts, clicks, and loads
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { type: object }
+
+  /organizations/{org_id}/servers/{server_id}/messages/{id}/retry:
+    post:
+      summary: Retry a message
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: server_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Retry initiated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Success' }
+
+  /organizations/{org_id}/domains:
+    get:
+      summary: List domains
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: List of domains
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Domain' }
+
+    post:
+      summary: Add a new domain
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [domain]
+              properties:
+                domain:
+                  type: object
+                  required: [name]
+                  properties:
+                    name: { type: string }
+                    verification_method: { type: string, enum: [DNS, Email], default: DNS }
+      responses:
+        '201':
+          description: Domain added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Domain' }
+
+  /organizations/{org_id}/domains/{uuid}/verify:
+    post:
+      summary: Verify a domain
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: uuid
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                method: { type: string, enum: [DNS, Email] }
+                code: { type: string, description: "Required for Email verification" }
+                email_address: { type: string, description: "Send verification email to this address" }
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Success' }
+
+  /organizations/{org_id}/servers/{server_id}/webhooks:
+    get:
+      summary: List webhooks
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: server_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: List of webhooks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Webhook' }
+
+  /organizations/{org_id}/invites:
+    get:
+      summary: List organization invitations
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: List of invitations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Invite' }
+
+# Note: Additional administrative endpoints (/users, /ip_pools) follow similar REST patterns.
+# The specification is extensive; refer to the controllers in app/controllers/api/v1 for the full implementation details.

@@ -589,6 +589,31 @@ module Postal
         description "The JWKS endpoint on the authorization server (only used when discovery is false)"
       end
     end
+
+    group :manticore do
+      boolean :enabled do
+        description "Enable Manticore Search for message indexing and search"
+        default false
+      end
+
+      string :host do
+        description "The hostname of the Manticore server"
+        default "127.0.0.1"
+      end
+
+      integer :port do
+        description "The port of the Manticore server (MySQL protocol)"
+        default 9306
+      end
+
+      string :username do
+        description "The Manticore username (if any)"
+      end
+
+      string :password do
+        description "The Manticore password (if any)"
+      end
+    end
   end
 
   class << self

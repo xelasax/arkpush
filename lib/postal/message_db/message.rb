@@ -207,6 +207,7 @@ module Postal
       def save(queue_on_create: true)
         save_raw_message
         persisted? ? _update : _create(queue: queue_on_create)
+        sync_to_manticore
         self
       end
 
@@ -220,6 +221,7 @@ module Postal
         else
           _create
         end
+        sync_to_manticore
       end
 
       #
@@ -229,6 +231,7 @@ module Postal
         return unless persisted?
 
         @database.delete("messages", where: { id: id })
+        delete_from_manticore
       end
 
       #
@@ -577,6 +580,35 @@ module Postal
       end
 
       private
+
+      def sync_to_manticore
+        return unless Postal::Manticore::Adapter.enabled?
+
+        index = Postal::Manticore::Adapter.index_name(@database.server_id)
+        attributes = {
+          id: id,
+          token: token,
+          rcpt_to: rcpt_to,
+          mail_from: mail_from,
+          subject: subject,
+          timestamp: timestamp.to_i,
+          status: status,
+          spam: spam ? 1 : 0,
+          tag: tag
+        }
+
+        # Build REPLACE INTO query for RT index
+        keys = attributes.keys.map { |k| "`#{k}`" }.join(", ")
+        values = attributes.values.map { |v| Postal::Manticore::Adapter.escape(v) }.join(", ")
+        Postal::Manticore::Adapter.query("REPLACE INTO #{index} (#{keys}) VALUES (#{values})")
+      end
+
+      def delete_from_manticore
+        return unless Postal::Manticore::Adapter.enabled?
+
+        index = Postal::Manticore::Adapter.index_name(@database.server_id)
+        Postal::Manticore::Adapter.query("DELETE FROM #{index} WHERE id = #{id}")
+      end
 
       def _update
         @database.update("messages", @attributes.except(:id), where: { id: @attributes["id"] })

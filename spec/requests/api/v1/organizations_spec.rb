@@ -1,0 +1,78 @@
+# frozen_string_literal: true
+
+require 'swagger_helper'
+
+RSpec.describe 'Api::V1::Organizations', type: :request do
+  path '/api/v1/organizations' do
+    get 'List organizations' do
+      tags 'Organizations'
+      security [bearerAuth: []]
+      response '200', 'successful' do
+        schema type: :object,
+          properties: {
+            status: { type: :string },
+            data: {
+              type: :array,
+              items: { type: :object }
+            }
+          }
+        run_test!
+      end
+    end
+
+    post 'Create organization' do
+      tags 'Organizations'
+      security [bearerAuth: []]
+      consumes 'application/json'
+      parameter name: :organization, in: :body, schema: {
+        type: :object,
+        properties: {
+          organization: {
+            type: :object,
+            properties: {
+              name: { type: :string },
+              permalink: { type: :string }
+            },
+            required: %w[name permalink]
+          }
+        }
+      }
+      response '201', 'organization created' do
+        run_test!
+      end
+    end
+  end
+
+  path '/api/v1/organizations/{id}/servers' do
+    parameter name: :id, in: :path, type: :string
+
+    get 'List servers' do
+      tags 'Servers'
+      security [bearerAuth: []]
+      response '200', 'successful' do
+        run_test!
+      end
+    end
+
+    post 'Create server' do
+      tags 'Servers'
+      security [bearerAuth: []]
+      consumes 'application/json'
+      parameter name: :server, in: :body, schema: {
+        type: :object,
+        properties: {
+          server: {
+            type: :object,
+            properties: {
+              name: { type: :string },
+              permalink: { type: :string }
+            }
+          }
+        }
+      }
+      response '201', 'server created' do
+        run_test!
+      end
+    end
+  end
+end

@@ -99,5 +99,57 @@ Rails.application.routes.draw do
 
   get "ip" => "sessions#ip"
 
+  namespace :api, defaults: { format: "json" } do
+    namespace :v1 do
+      resources :sessions, only: [:create] do
+        delete :destroy, on: :collection
+        post :reset, on: :collection, action: :begin_password_reset
+        put :reset, on: :collection, action: :finish_password_reset
+      end
+
+      resource :user, only: [:show, :update], controller: "user" do
+        resources :api_keys, only: [:index, :create, :destroy], controller: "user_api_keys"
+        post :join, on: :collection, action: :join
+      end
+
+      resources :organizations, only: [:index, :show, :create, :update, :destroy] do
+        patch :settings, on: :member
+        resources :servers, only: [:index, :show, :create, :update, :destroy] do
+          post :suspend, on: :member
+          post :unsuspend, on: :member
+
+          resources :messages, only: [:index, :show] do
+            get :activity, on: :member
+            get :deliveries, on: :member
+            post :retry, on: :member
+            post :cancel_hold, on: :member
+          end
+
+          resources :webhooks, only: [:index, :show, :create, :update, :destroy] do
+            get :history, on: :collection
+            get "history/:uuid", on: :collection, action: "history_request", as: "history_request"
+          end
+
+          resources :track_domains, only: [:index, :show, :create, :destroy] do
+            post :toggle_ssl, on: :member
+            post :check, on: :member
+          end
+
+          resources :ip_pool_rules, only: [:index, :show, :create, :update, :destroy]
+        end
+        resources :domains, only: [:index, :show, :create, :destroy] do
+          post :verify, on: :member
+          post :check, on: :member
+        end
+        resources :invites, only: [:index, :create, :destroy]
+        resources :ip_pool_rules, only: [:index, :show, :create, :update, :destroy]
+      end
+
+      resources :users, only: [:index, :show, :create, :update, :destroy]
+      resources :ip_pools, only: [:index, :show, :create, :update, :destroy]
+      get "docs" => "docs#index"
+    end
+  end
+
   root "organizations#index"
 end
