@@ -12,6 +12,7 @@ module API
       skip_before_action :auth_session, raise: false
       skip_before_action :store_user_last_used_at, raise: false
       skip_before_action :validate_auth_session, raise: false
+      skip_after_action :touch_auth_session, raise: false
 
       before_action :authenticate_with_api_key
 
@@ -70,6 +71,7 @@ module API
         return if current_user&.admin?
 
         render_error "AdminRequired", message: "Administrator permissions are required to access this resource.", status: 403
+        throw(:abort)
       end
 
     end

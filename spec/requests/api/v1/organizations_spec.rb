@@ -6,6 +6,9 @@ RSpec.describe 'API::V1::Organizations', type: :request do
   let(:user) { create(:user) }
   let(:user_api_key) { create(:user_api_key, user: user) }
   let(:Authorization) { "Bearer #{user_api_key.key}" }
+  let(:organization) { create(:organization, owner: user, permalink: 'test-org') }
+
+  before { organization }
 
   path '/api/v1/organizations' do
     get 'List organizations' do

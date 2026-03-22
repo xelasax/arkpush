@@ -3,6 +3,7 @@
 module API
   module V1
     class OrganizationsController < BaseController
+      before_action :admin_required, only: [:create, :destroy]
 
       # GET /api/v1/organizations
       def index
@@ -18,7 +19,6 @@ module API
 
       # POST /api/v1/organizations
       def create
-        admin_required
         @organization = Organization.new(params.require(:organization).permit(:name, :permalink))
         @organization.owner = current_user
         if @organization.save
@@ -40,7 +40,6 @@ module API
 
       # DELETE /api/v1/organizations/:id
       def destroy
-        admin_required
         @organization = Organization.find_by_permalink!(params[:id])
         @organization.soft_destroy
         render_success({ message: "Organization deleted successfully." })

@@ -5,6 +5,7 @@ module API
     class ServersController < BaseController
 
       before_action :set_organization
+      before_action :admin_required, only: [:suspend, :unsuspend]
 
       # GET /api/v1/organizations/:organization_id/servers
       def index
@@ -47,7 +48,6 @@ module API
 
       # POST /api/v1/organizations/:organization_id/servers/:id/suspend
       def suspend
-        admin_required
         @server = @organization.servers.find_by_permalink!(params[:id])
         @server.suspend(params[:reason] || "Suspended via API")
         render_success({ message: "Server suspended successfully." })
@@ -55,7 +55,6 @@ module API
 
       # POST /api/v1/organizations/:organization_id/servers/:id/unsuspend
       def unsuspend
-        admin_required
         @server = @organization.servers.find_by_permalink!(params[:id])
         @server.unsuspend
         render_success({ message: "Server unsuspended successfully." })

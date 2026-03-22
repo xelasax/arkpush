@@ -40,6 +40,7 @@ class User < ApplicationRecord
 
   has_many :organization_users, dependent: :destroy, as: :user
   has_many :organizations, through: :organization_users
+  has_many :user_api_keys, dependent: :destroy
 
   def organizations_scope
     if admin?
