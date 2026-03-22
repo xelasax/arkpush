@@ -75,7 +75,11 @@ module Postal
         %w[clicks deliveries links live_stats loads messages
            raw_message_sizes spam_checks stats_daily stats_hourly
            stats_monthly stats_yearly suppressions webhook_requests].each do |table|
-          @database.query("TRUNCATE `#{@database.database_name}`.`#{table}`")
+          begin
+            @database.query("TRUNCATE `#{@database.database_name}`.`#{table}`")
+          rescue Mysql2::Error => e
+            raise unless e.message =~ /doesn't exist/
+          end
         end
       end
 
