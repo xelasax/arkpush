@@ -3,6 +3,10 @@
 require 'swagger_helper'
 
 RSpec.describe 'Api::V1::Organizations', type: :request do
+  let(:user) { create(:user) }
+  let(:user_api_key) { create(:user_api_key, user: user) }
+  let(:Authorization) { "Bearer #{user_api_key.key}" }
+
   path '/api/v1/organizations' do
     get 'List organizations' do
       tags 'Organizations'

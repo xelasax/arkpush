@@ -3,6 +3,11 @@
 require 'swagger_helper'
 
 RSpec.describe 'Api::V1::Sessions', type: :request do
+  let(:user) { create(:user, password: 'password') }
+  let(:credentials) { { email_address: user.email_address, password: 'password' } }
+  let(:user_api_key) { create(:user_api_key, user: user) }
+  let(:Authorization) { "Bearer #{user_api_key.key}" }
+
   path '/api/v1/sessions' do
     post 'Login and obtain API key' do
       tags 'Sessions'
