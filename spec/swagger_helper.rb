@@ -6,12 +6,20 @@ RSpec.configure do |config|
   config.openapi_root = Rails.root.join('public', 'api-docs').to_s
   config.openapi_specs = {
     'v1/swagger.yaml' => {
-      openapi: '3.0.1',
+      openapi: '3.1.0',
       info: {
         title: 'Postcontrol API V1',
         version: 'v1'
       },
       paths: {},
+      components: {
+        securitySchemes: {
+          bearerAuth: {
+            type: :http,
+            scheme: :bearer
+          }
+        }
+      },
       servers: [
         {
           url: '{protocol}://{host}',
