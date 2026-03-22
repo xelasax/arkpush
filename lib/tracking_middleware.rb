@@ -9,6 +9,7 @@ class TrackingMiddleware
   end
 
   def call(env)
+    fail "DEBUG: TrackingMiddleware hit"
     warn "DEBUG: TrackingMiddleware: #{env['REQUEST_METHOD']} #{env['PATH_INFO']} (host: #{env['HTTP_HOST']})"
     unless env["HTTP_X_POSTAL_TRACK_HOST"].to_i == 1
       return @app.call(env)
