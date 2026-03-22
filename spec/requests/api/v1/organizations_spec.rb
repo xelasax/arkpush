@@ -3,7 +3,7 @@
 require 'swagger_helper'
 
 RSpec.describe 'API::V1::Organizations', type: :request do
-  let(:user) { create(:user) }
+  let(:user) { create(:user, admin: true) }
   let(:user_api_key) { create(:user_api_key, user: user) }
   let(:Authorization) { "Bearer #{user_api_key.key}" }
   let(:org_object) { create(:organization, owner: user, permalink: 'test-org') }
@@ -86,7 +86,7 @@ RSpec.describe 'API::V1::Organizations', type: :request do
         }
       }
 
-      let(:server) { { server: { name: 'Test Server', permalink: 'test-server' } } }
+      let(:server) { { server: { name: 'New Test Server', permalink: 'new-test-server', mode: 'Live' } } }
       response '201', 'server created' do
         run_test!
       end
